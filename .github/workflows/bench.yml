@@ -46,18 +46,19 @@ jobs:
         run: ./run.sh ensure-images --pull --build
 
       # CPU suite only, in the NTS-vs-ZTS pairing this fork exists for
-      # (https://github.com/docker-library/php/issues/1719): twice, back to
-      # back, so round-over-round stability is visible in the artifact.
-      - name: cpu (round 1)
+      # (https://github.com/docker-library/php/issues/1719): four rounds,
+      # back to back, so round-over-round stability is visible in the
+      # artifact (r1-r3 archived, round 4 left in results/).
+      - name: cpu (4 rounds)
         run: |
+          for i in 1 2 3; do
+            ./run.sh bench cpu
+            mkdir -p "r$i" && cp results/cpu/*.json "r$i/"
+          done
           ./run.sh bench cpu
-          mkdir -p r1 && cp results/cpu/*.json r1/
-
-      - name: cpu (round 2)
-        run: ./run.sh bench cpu
 
       - name: round stability check
-        run: python3 .github/compare_rounds.py r1 results/cpu | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python3 .github/compare_rounds.py r1 r2 r3 results/cpu | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: summary
         run: ./run.sh summarize | tee -a "$GITHUB_STEP_SUMMARY"
@@ -69,5 +70,6 @@ jobs:
           path: |
             results/
             r1/
-          overwrite: true
+            r2/
+            r3/
         if: always()

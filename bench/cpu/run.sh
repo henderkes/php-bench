@@ -27,6 +27,15 @@ part_files=""
 for script in scripts/*.php; do
 	name="$(basename "$script" .php)"
 
+	# sampling depth scales inversely with runtime: ms-scale scripts
+	# need many more samples than the multi-second hash runs for the
+	# same confidence (fork tweak for round-stable NTS-vs-ZTS numbers)
+	case "$name" in
+		hash) WARMUP=3; MIN_RUNS=15 ;;
+		json) WARMUP=8; MIN_RUNS=40 ;;
+		*) WARMUP=10; MIN_RUNS=60 ;;
+	esac
+
 	for variant in baseline opcache jit; do
 		case "$variant" in
 			baseline) cmd="${PHP_BIN} ${script}" ;;
@@ -37,7 +46,7 @@ for script in scripts/*.php; do
 		part="${TMP_DIR}/${name}_${variant}.json"
 
 		echo "Running: ${label}" >&2
-		hyperfine --warmup 3 --min-runs 15 --export-json "$part" --command-name "$label" "$cmd" >/dev/null
+		hyperfine --warmup "$WARMUP" --min-runs "$MIN_RUNS" --export-json "$part" --command-name "$label" "$cmd" >/dev/null
 		php /summarize-hyperfine.php "$part"
 
 		part_files="$part_files $part"
