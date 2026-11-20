@@ -71,13 +71,22 @@ list_cpu_style_official_targets() {
 	list_official_targets | awk -F'|' '$5 == "cli"'
 }
 
-# CLI + zts -- TSRM (thread-safety bookkeeping) adds real per-access
-# overhead to every global/static lookup even with a single thread running,
-# which is the "non-negligible" cost flagged in
-# https://github.com/docker-library/php/issues/742. Comparing it needs
-# nothing new: php:$version-zts-$os already exists as an official tag.
+# CLI + zts -- TSRM (thread-safety bookkeeping) adds real per-access overhead
+# to every global/static lookup even with a single thread running, which is
+# the "non-negligible" cost flagged in
+# https://github.com/docker-library/php/issues/742.
+#
+# BENCH_ZTS_FIRST=1 flips arm order (fork): the cpu suite sweeps one arm's
+# 21 benchmarks then the other's, so on a runner with bursts of host
+# interference (observed on GitHub-hosted runners), whichever arm runs
+# second can be hit unequally. Workflow rounds alternate this flag;
+# per-target filenames do not change, so aggregation is unaffected.
 list_cpu_bench_targets() {
-	list_official_targets | awk -F'|' '$5 == "cli" || $5 == "zts"'
+	if [ "${BENCH_ZTS_FIRST:-}" = 1 ]; then
+		list_official_targets | awk -F'|' '$5 == "cli" || $5 == "zts"' | tac
+	else
+		list_official_targets | awk -F'|' '$5 == "cli" || $5 == "zts"'
+	fi
 }
 
 distro_pkg_base_image() {

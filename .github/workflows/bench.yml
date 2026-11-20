@@ -45,18 +45,29 @@ jobs:
       - name: ensure-images
         run: ./run.sh ensure-images --pull --build
 
+      - name: verify arms
+        run: |
+          docker image inspect php:8.6-cli-bookworm --format '{{json .RepoDigests}}'
+          echo -n "zts arm (php:8.6-cli-bookworm): "
+          docker run --rm php:8.6-cli-bookworm php -i | grep -m1 -E 'Thread Safety|^PHP Version '
+          echo -n "nts arm (php-bench/nts-8.6): "
+          docker run --rm php-bench/nts-8.6 php -i | grep -m1 -E 'Thread Safety|^PHP Version '
+
       # CPU suite only, in the NTS-vs-ZTS pairing this fork exists for
       # (https://github.com/docker-library/php/issues/1719): four rounds,
-      # back to back, so round-over-round stability is visible in the
-      # artifact (r1-r3 archived, round 4 left in results/).
-      - name: cpu (4 rounds)
+      # alternating which arm sweeps first (BENCH_ZTS_FIRST), so host
+      # interference hits both arms equally on average.
+      - name: cpu (4 rounds, alternating arm order)
         run: |
-          for i in 1 2 3; do
+          i=0
+          for round in r1 r2 r3; do
+            if [ $((i % 2)) -eq 1 ]; then export BENCH_ZTS_FIRST=1; else unset BENCH_ZTS_FIRST; fi
             ./run.sh bench cpu
-            mkdir -p "r$i" && cp results/cpu/*.json "r$i/"
+            mkdir -p "$round" && cp results/cpu/*.json "$round/"
+            i=$((i + 1))
           done
+          export BENCH_ZTS_FIRST=1
           ./run.sh bench cpu
-
       - name: round stability check
         run: python3 .github/compare_rounds.py r1 r2 r3 results/cpu | tee -a "$GITHUB_STEP_SUMMARY"
 
