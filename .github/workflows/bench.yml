@@ -36,23 +36,28 @@ jobs:
     steps:
       - uses: tianon/actions/checkout/composite@169a61f86f2bdd62a21837ab30aeb1ea4c23bdbe # HEAD
 
+      # 8.6 is ZTS-only upstream (docker-library/php#1686), so the NTS arm
+      # has to be built here from the official Dockerfile with --enable-zts
+      # removed; php-bench/* tags are local-only (run.sh never pulls them)
+      - name: build nts 8.6
+        run: docker build -t php-bench/nts-8.6 images/nts-8.6
+
       - name: ensure-images
         run: ./run.sh ensure-images --pull --build
 
-      # fastest to slowest, now that ensure-images has moved pull/build cost
-      # out of each of these -- cpu is last by a wide margin (36 targets, and
-      # its deliberately-slow bcrypt hash script run 3 ways on every one)
-      - name: tls
-        run: ./run.sh bench tls
+      # CPU suite only, in the NTS-vs-ZTS pairing this fork exists for
+      # (https://github.com/docker-library/php/issues/1719): twice, back to
+      # back, so round-over-round stability is visible in the artifact.
+      - name: cpu (round 1)
+        run: |
+          ./run.sh bench cpu
+          mkdir -p r1 && cp results/cpu/*.json r1/
 
-      - name: imagick
-        run: ./run.sh bench imagick
-
-      - name: throughput
-        run: ./run.sh bench throughput
-
-      - name: cpu
+      - name: cpu (round 2)
         run: ./run.sh bench cpu
+
+      - name: round stability check
+        run: python3 .github/compare_rounds.py r1 results/cpu | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: summary
         run: ./run.sh summarize | tee -a "$GITHUB_STEP_SUMMARY"
@@ -61,6 +66,8 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: results-${{ github.sha }}
-          path: results/
+          path: |
+            results/
+            r1/
           overwrite: true
         if: always()

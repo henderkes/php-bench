@@ -12,11 +12,11 @@
 #     reports pair it against whichever official version(s) match.
 set -Eeuo pipefail
 
-PHP_VERSIONS=(8.2 8.3 8.4 8.5)
-DEBIAN_OSES=(bookworm trixie)
-ALPINE_OSES=(alpine3.23 alpine3.24)
+PHP_VERSIONS=(8.6)
+DEBIAN_OSES=(bookworm)
+ALPINE_OSES=()
 OSES=("${DEBIAN_OSES[@]}" "${ALPINE_OSES[@]}")
-SAPIS=(cli fpm zts)
+SAPIS=(cli zts)
 
 is_debian_os() {
 	local os="$1" d
@@ -28,7 +28,17 @@ is_debian_os() {
 
 official_image() {
 	local version="$1" sapi="$2" os="$3"
-	echo "php:${version}-${sapi}-${os}"
+	# Since docker-library/php#1686, php:8.6-cli IS the ZTS build and there
+	# is no official NTS 8.6 image, so for the NTS-vs-ZTS question (#1719):
+	#   - the "zts" arm is the shipped GA default: php:8.6-cli-bookworm
+	#   - the "cli" arm is php-bench/nts-8.6 -- the same official 8.6
+	#     Dockerfile with --enable-zts removed, built by the workflow
+	#     (php-bench/* tags are local-only; run.sh never pulls them)
+	if [ "$sapi" = cli ]; then
+		echo "php-bench/nts-8.6"
+	else
+		echo "php:${version}-cli-${os}"
+	fi
 }
 
 official_id() {
@@ -91,11 +101,10 @@ distro_pkg_id() {
 }
 
 # Emits "id|base_image|built_image|os|label", one per line.
+# (Disabled in this fork: bookworm's distro PHP is 8.2, which has nothing
+# to say about an 8.6 NTS-vs-ZTS comparison.)
 list_distro_pkg_targets() {
-	local os
-	for os in "${OSES[@]}"; do
-		echo "$(distro_pkg_id "$os")|$(distro_pkg_base_image "$os")|$(distro_pkg_built_image "$os")|${os}|${os} native package (distro-pkg)"
-	done
+	:
 }
 
 # Emits "id|version|os|mode|label" for the apache/fpm architecture

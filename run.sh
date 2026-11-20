@@ -383,26 +383,13 @@ bench_throughput_suite() {
 # own: the --pull/--build flags that shape what "ensure" actually does are
 # global (see main), not specific to this command.
 cmd_ensure_images() {
-	local os
-	for os in "${OSES[@]}"; do
-		local built; built="$(ensure_distro_pkg "$os")"
-		ensure_overlay "$built" 0 0 >/dev/null
-	done
-
 	local id image version target_os sapi label
+	# trim (cpu-suite-only fork): just the plain hyperfine overlays for
+	# the cpu suite's targets; no distro-pkg, no curl/imagick overlays
+	# (tls/imagick are not run), no server images (throughput not run)
 	list_cpu_bench_targets | while IFS='|' read -r id image version target_os sapi label; do
 		ensure_overlay "$image" 0 0 >/dev/null
 	done
-	list_cpu_style_official_targets | while IFS='|' read -r id image version target_os sapi label; do
-		ensure_overlay "$image" 1 0 >/dev/null
-		ensure_overlay "$image" 0 1 >/dev/null
-	done
-
-	list_official_targets | awk -F'|' '$5 == "apache" || $5 == "fpm"' | while IFS='|' read -r id image version target_os sapi label; do
-		ensure_pulled "$image"
-	done
-	ensure_pulled nginx:stable
-	ensure_pulled httpd:latest
 }
 
 cmd_bench() {

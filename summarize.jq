@@ -289,7 +289,7 @@ def glossary:
 	(
 		[
 			"- **official** is the `docker-library/php` image's own compiled PHP; **distro-pkg** is the same distro's packaged PHP (`php-cli` and friends).",
-			"- **cli** and **zts** are the non-threaded and thread-safe PHP builds. **baseline**, **opcache** and **jit** are the same build run with no bytecode cache, with opcache, and with opcache plus the JIT compiler.",
+			"- **cli** is `php-bench/nts-8.6` (the official 8.6 Dockerfile with --enable-zts removed); **zts** is `php:8.6-cli-bookworm`, the shipped GA image, which IS the thread-safe build since docker-library/php#1686 (the NTS-vs-ZTS question from https://github.com/docker-library/php/issues/1719). **baseline**, **opcache** and **jit** are the same build run with no bytecode cache, with opcache, and with opcache plus the JIT compiler.",
 			"- **p50/p95/p99 ms** mean half, 95% and 99% of requests finished at least that fast; p99 is roughly the worst case a real user hits.",
 			"- **\"too close to call\"** means the gap between the two numbers is not big enough to believe: it is smaller than either the run-to-run scatter hyperfine measured, or the disagreement between the PHP versions being averaged, whichever is larger. The millisecond figures are still shown, but the difference between them is not something to act on. Anything under 1% is reported this way too, on the grounds that nobody should care.",
 			"- Millisecond columns average across whichever PHP versions were benchmarked (8.2-8.5 in a full run) and, where relevant, the OSes. Where the versions disagree enough for that average to mislead on its own, it is also called out under the table.",
