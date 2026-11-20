@@ -26,11 +26,10 @@ def collect(d):
 
 def main():
     rounds = [collect(d) for d in sys.argv[1:]]
-    labels = sorted(set.intersection(*[set(r) for r in rounds]))
     bad = []
-    print("\n## Round stability (NTS-vs-ZTS overhead per round, " + str(len(rounds)) + " rounds)\n")
-    print("| script:variant | " + " | ".join(f"r{i+1}" for i in range(len(rounds))) + " | spread | median | verdict |")
-    print("| --- | " + " | ".join("---:" for _ in range(len(rounds) + 3)) + " |")
+    labels = sorted({k[0] for k in rounds[0]})
+    labels = [l for l in labels if all((l, "nts") in r and (l, "zts") in r for r in rounds)]
+    bad = []
     for label in labels:
         ovh = [(r[(label, "zts")] / r[(label, "nts")] - 1) * 100 for r in rounds]
         spread = max(ovh) - min(ovh)
