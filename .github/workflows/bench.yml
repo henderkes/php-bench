@@ -48,10 +48,10 @@ jobs:
       - name: verify arms
         run: |
           docker image inspect php:8.6-cli-bookworm --format '{{json .RepoDigests}}'
-          echo -n "zts arm (php:8.6-cli-bookworm): "
-          docker run --rm php:8.6-cli-bookworm php -i | grep -m1 -E 'Thread Safety|^PHP Version '
-          echo -n "nts arm (php-bench/nts-8.6): "
-          docker run --rm php-bench/nts-8.6 php -i | grep -m1 -E 'Thread Safety|^PHP Version '
+          for img in php:8.6-cli-bookworm php-bench/nts-8.6; do
+            echo -n "$img: "
+            docker run --rm "$img" php -r 'echo "PHP ", PHP_VERSION, " Thread Safety: ", (PHP_ZTS ? "enabled (ZTS)" : "disabled (NTS)"), "\n";'
+          done
 
       # CPU suite only, in the NTS-vs-ZTS pairing this fork exists for
       # (https://github.com/docker-library/php/issues/1719): four rounds,
